@@ -33,6 +33,12 @@ const serverlessConfiguration: AWS = {
         "${self:service}-${self:provider.stage}-AppointmentTable-co",
       APPOINTMENT_TABLE_MX:
         "${self:service}-${self:provider.stage}-AppointmentTable-mx",
+      APPOINTMENT_CO_URL:
+        "${cf:${self:service}-${self:provider.stage}.AppointmentQueueCOUrl}",
+      APPOINTMENT_MX_URL:
+        "${cf:${self:service}-${self:provider.stage}.AppointmentQueueMXUrl}",
+      APPOINTMENT_PE_URL:
+        "${cf:${self:service}-${self:provider.stage}.AppointmentQueuePEUrl}",
     },
     iam: {
       role: {
@@ -46,6 +52,21 @@ const serverlessConfiguration: AWS = {
             Effect: "Allow",
             Action: ["dynamodb:PutItem"],
             Resource: "arn:aws:dynamodb:*:*:*",
+          },
+          {
+            Effect: "Allow",
+            Action: ["sqs:SendMessage"],
+            Resource: [
+              {
+                "Fn::GetAtt": ["AppointmentQueueCO", "Arn"],
+              },
+              {
+                "Fn::GetAtt": ["AppointmentQueueMX", "Arn"],
+              },
+              {
+                "Fn::GetAtt": ["AppointmentQueuePE", "Arn"],
+              },
+            ],
           },
         ],
       },
@@ -329,6 +350,59 @@ const serverlessConfiguration: AWS = {
               },
             },
           ],
+        },
+      },
+      AppointmentQueueCO: {
+        Type: "AWS::SQS::Queue",
+        Properties: {
+          QueueName:
+            "${self:service}-${self:provider.stage}-AppointmentQueue-co.fifo",
+          FifoQueue: true,
+          ContentBasedDeduplication: true,
+        },
+      },
+      AppointmentQueueMX: {
+        Type: "AWS::SQS::Queue",
+        Properties: {
+          QueueName:
+            "${self:service}-${self:provider.stage}-AppointmentQueue-mx.fifo",
+          FifoQueue: true,
+          ContentBasedDeduplication: true,
+        },
+      },
+      AppointmentQueuePE: {
+        Type: "AWS::SQS::Queue",
+        Properties: {
+          QueueName:
+            "${self:service}-${self:provider.stage}-AppointmentQueue-pe.fifo",
+          FifoQueue: true,
+          ContentBasedDeduplication: true,
+        },
+      },
+    },
+    Outputs: {
+      AppointmentQueueCOUrl: {
+        Value: {
+          Ref: "AppointmentQueueCO",
+        },
+        Export: {
+          Name: "${self:service}-${self:provider.stage}-AppointmentQueueCOUrl",
+        },
+      },
+      AppointmentQueueMXUrl: {
+        Value: {
+          Ref: "AppointmentQueueMX",
+        },
+        Export: {
+          Name: "${self:service}-${self:provider.stage}-AppointmentQueueMXUrl",
+        },
+      },
+      AppointmentQueuePEUrl: {
+        Value: {
+          Ref: "AppointmentQueuePE",
+        },
+        Export: {
+          Name: "${self:service}-${self:provider.stage}-AppointmentQueuePEUrl",
         },
       },
     },

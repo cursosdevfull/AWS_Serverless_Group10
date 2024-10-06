@@ -8,4 +8,8 @@ export class Parameters {
       process.env.APPOINTMENT_TABLE_PE || "appointment-dev-AppointmentTable"
     );
   }
+
+  static get appointmentUpdateStatusTopicArn(): string {
+    return process.env.UPDATE_STATUS_SNS_TOPIC_ARN;
+  }
 }

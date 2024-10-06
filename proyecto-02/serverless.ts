@@ -33,12 +33,11 @@ const serverlessConfiguration: AWS = {
         "${self:service}-${self:provider.stage}-AppointmentTable-co",
       APPOINTMENT_TABLE_MX:
         "${self:service}-${self:provider.stage}-AppointmentTable-mx",
-      APPOINTMENT_CO_URL:
-        "${cf:${self:service}-${self:provider.stage}.AppointmentQueueCOUrl}",
-      APPOINTMENT_MX_URL:
-        "${cf:${self:service}-${self:provider.stage}.AppointmentQueueMXUrl}",
-      APPOINTMENT_PE_URL:
-        "${cf:${self:service}-${self:provider.stage}.AppointmentQueuePEUrl}",
+      APPOINTMENT_CO_URL: { Ref: "AppointmentQueueCO" },
+      APPOINTMENT_MX_URL: { Ref: "AppointmentQueueMX" },
+      APPOINTMENT_PE_URL: { Ref: "AppointmentQueuePE" },
+      SNS_TOPIC_ARN: { Ref: "AppointmentSNSTopic" },
+      UPDATE_STATUS_SNS_TOPIC_ARN: { Ref: "UpdateStatusSNSTopic" },
     },
     iam: {
       role: {
@@ -50,12 +49,22 @@ const serverlessConfiguration: AWS = {
           },
           {
             Effect: "Allow",
-            Action: ["dynamodb:PutItem"],
+            Action: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
             Resource: "arn:aws:dynamodb:*:*:*",
           },
           {
             Effect: "Allow",
-            Action: ["sqs:SendMessage"],
+            Action: ["sns:Publish"],
+            Resource: "arn:aws:sns:*:*:*",
+          },
+          {
+            Effect: "Allow",
+            Action: [
+              "sqs:SendMessage",
+              "sqs:ReceiveMessage",
+              "sqs:DeleteMessage",
+              "sqs:GetQueueAttributes",
+            ],
             Resource: [
               {
                 "Fn::GetAtt": ["AppointmentQueueCO", "Arn"],
@@ -65,6 +74,9 @@ const serverlessConfiguration: AWS = {
               },
               {
                 "Fn::GetAtt": ["AppointmentQueuePE", "Arn"],
+              },
+              {
+                "Fn::GetAtt": ["UpdateStatusQueue", "Arn"],
               },
             ],
           },
@@ -379,30 +391,155 @@ const serverlessConfiguration: AWS = {
           ContentBasedDeduplication: true,
         },
       },
-    },
-    Outputs: {
-      AppointmentQueueCOUrl: {
-        Value: {
-          Ref: "AppointmentQueueCO",
-        },
-        Export: {
-          Name: "${self:service}-${self:provider.stage}-AppointmentQueueCOUrl",
-        },
-      },
-      AppointmentQueueMXUrl: {
-        Value: {
-          Ref: "AppointmentQueueMX",
-        },
-        Export: {
-          Name: "${self:service}-${self:provider.stage}-AppointmentQueueMXUrl",
+      AppointmentSNSTopic: {
+        Type: "AWS::SNS::Topic",
+        Properties: {
+          TopicName:
+            "${self:service}-${self:provider.stage}-AppointmentSNSTopic.fifo",
+          FifoTopic: true,
+          ContentBasedDeduplication: true,
         },
       },
-      AppointmentQueuePEUrl: {
-        Value: {
-          Ref: "AppointmentQueuePE",
+      AppointmentQueueCOSubscription: {
+        Type: "AWS::SNS::Subscription",
+        Properties: {
+          TopicArn: { Ref: "AppointmentSNSTopic" },
+          Protocol: "sqs",
+          Endpoint: { "Fn::GetAtt": ["AppointmentQueueCO", "Arn"] },
+          FilterPolicy: {
+            countryISO: ["CO"],
+          },
         },
-        Export: {
-          Name: "${self:service}-${self:provider.stage}-AppointmentQueuePEUrl",
+      },
+      AppointmentQueueMXSubscription: {
+        Type: "AWS::SNS::Subscription",
+        Properties: {
+          TopicArn: { Ref: "AppointmentSNSTopic" },
+          Protocol: "sqs",
+          Endpoint: { "Fn::GetAtt": ["AppointmentQueueMX", "Arn"] },
+          FilterPolicy: {
+            countryISO: ["MX"],
+          },
+        },
+      },
+      AppointmentQueuePESubscription: {
+        Type: "AWS::SNS::Subscription",
+        Properties: {
+          TopicArn: { Ref: "AppointmentSNSTopic" },
+          Protocol: "sqs",
+          Endpoint: { "Fn::GetAtt": ["AppointmentQueuePE", "Arn"] },
+          FilterPolicy: {
+            countryISO: ["PE"],
+          },
+        },
+      },
+      UpdateStatusSNSTopic: {
+        Type: "AWS::SNS::Topic",
+        Properties: {
+          TopicName:
+            "${self:service}-${self:provider.stage}-UpdateStatusSNSTopic",
+        },
+      },
+      UpdateStatusQueue: {
+        Type: "AWS::SQS::Queue",
+        Properties: {
+          QueueName: "${self:service}-${self:provider.stage}-UpdateStatusQueue",
+        },
+      },
+      UpdateStatusQueueSubscription: {
+        Type: "AWS::SNS::Subscription",
+        Properties: {
+          TopicArn: { Ref: "UpdateStatusSNSTopic" },
+          Protocol: "sqs",
+          Endpoint: { "Fn::GetAtt": ["UpdateStatusQueue", "Arn"] },
+        },
+      },
+      QueuePolicyCO: {
+        Type: "AWS::SQS::QueuePolicy",
+        Properties: {
+          Queues: [{ Ref: "AppointmentQueueCO" }],
+          PolicyDocument: {
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Effect: "Allow",
+                Principal: "*",
+                Action: "sqs:SendMessage",
+                Resource: { "Fn::GetAtt": ["AppointmentQueueCO", "Arn"] },
+                Condition: {
+                  ArnEquals: {
+                    "aws:SourceArn": { Ref: "AppointmentSNSTopic" },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+      QueuePolicyPE: {
+        Type: "AWS::SQS::QueuePolicy",
+        Properties: {
+          Queues: [{ Ref: "AppointmentQueuePE" }],
+          PolicyDocument: {
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Effect: "Allow",
+                Principal: "*",
+                Action: "sqs:SendMessage",
+                Resource: { "Fn::GetAtt": ["AppointmentQueuePE", "Arn"] },
+                Condition: {
+                  ArnEquals: {
+                    "aws:SourceArn": { Ref: "AppointmentSNSTopic" },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+      QueuePolicyMX: {
+        Type: "AWS::SQS::QueuePolicy",
+        Properties: {
+          Queues: [{ Ref: "AppointmentQueueMX" }],
+          PolicyDocument: {
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Effect: "Allow",
+                Principal: "*",
+                Action: "sqs:SendMessage",
+                Resource: { "Fn::GetAtt": ["AppointmentQueueMX", "Arn"] },
+                Condition: {
+                  ArnEquals: {
+                    "aws:SourceArn": { Ref: "AppointmentSNSTopic" },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+      QueueUpdateStatusPolicyMX: {
+        Type: "AWS::SQS::QueuePolicy",
+        Properties: {
+          Queues: [{ Ref: "UpdateStatusQueue" }],
+          PolicyDocument: {
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Effect: "Allow",
+                Principal: "*",
+                Action: "sqs:SendMessage",
+                Resource: { "Fn::GetAtt": ["UpdateStatusQueue", "Arn"] },
+                Condition: {
+                  ArnEquals: {
+                    "aws:SourceArn": { Ref: "UpdateStatusSNSTopic" },
+                  },
+                },
+              },
+            ],
+          },
         },
       },
     },

@@ -1,7 +1,5 @@
-import { PutItemCommandOutput } from "@aws-sdk/client-dynamodb";
-
-import { ItemPayload } from "../../infrastructure/constructors/dynamodb.constructor";
+import { Appointment } from "../roots/appoinment";
 
 export type AppointmentRepository = {
-  addItem(item: ItemPayload, tableName: string): Promise<PutItemCommandOutput>;
+  addItem(item: Appointment): Promise<void>;
 };

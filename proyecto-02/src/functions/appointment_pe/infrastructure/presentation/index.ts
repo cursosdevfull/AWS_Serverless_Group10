@@ -6,9 +6,9 @@ export default {
     {
       sqs: {
         arn: {
-          "Fn::GetAtt": ["AppointmentQueueMX", "Arn"],
+          "Fn::GetAtt": ["AppointmentQueuePE", "Arn"],
         },
-        batchSize: 5,
+        batchSize: 1,
       },
     },
   ],

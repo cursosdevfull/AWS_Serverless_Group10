@@ -30,4 +30,8 @@ export class Parameters {
   static get appointmentTable(): string {
     return process.env.APPOINTMENT_TABLE || "appointment-dev-AppointmentTable";
   }
+
+  static get appointmentSNSTopicArn(): string {
+    return process.env.SNS_TOPIC_ARN;
+  }
 }

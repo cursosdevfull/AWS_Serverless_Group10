@@ -1,14 +1,6 @@
-import { PutItemCommandOutput } from "@aws-sdk/client-dynamodb";
-import { InvocationType, InvokeCommandOutput } from "@aws-sdk/client-lambda";
-
-import { ItemPayload } from "../../infrastructure/constructors/dynamodb.constructor";
+import { Appointment } from "../roots/appoinment";
 
 export type AppointmentRepository = {
-  invokeLambda<T>(
-    lambdaName: string,
-    payload: T,
-    invocationType: InvocationType
-  ): Promise<InvokeCommandOutput>;
-
-  addItem(item: ItemPayload, tableName: string): Promise<PutItemCommandOutput>;
+  addItem(item: Appointment): Promise<void>;
+  updateStatus(appointmentId: string, status: string): Promise<void>;
 };

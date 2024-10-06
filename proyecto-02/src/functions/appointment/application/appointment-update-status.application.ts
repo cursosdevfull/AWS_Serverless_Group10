@@ -1,11 +1,10 @@
 import { AppointmentRepository } from "../domain/repositories/appointment.repository";
-import { Appointment } from "../domain/roots/appoinment";
 import { AppoinmentInfrastructure } from "../infrastructure/appointment.infrastructure";
 
-export class AppoinmentBookApplication {
+export class AppoinmentUpdateStatusApplication {
   repository: AppointmentRepository = new AppoinmentInfrastructure();
 
-  async execute(appointment: Appointment) {
-    await this.repository.addItem(appointment);
+  async execute(appointmentId: string, status: string) {
+    await this.repository.updateStatus(appointmentId, status);
   }
 }

@@ -7,33 +7,36 @@ import { AppoinmentBookApplication } from "../../application/appointment-book.ap
 
 const handler = async (event) => {
   console.log("event", event);
-  //console.log("parse", JSON.parse(event));
-  const {
-    patientId,
-    scheduleId,
-    insurance,
-    countryISO,
-    appointmentId,
-  }: AppointmentProps = event;
 
-  console.log({
-    patientId,
-    scheduleId,
-    insurance,
-    countryISO,
-    appointmentId,
-  });
+  for (const record of event.Records) {
+    const message = JSON.parse(JSON.parse(record.body).Message);
+    const {
+      patientId,
+      scheduleId,
+      insurance,
+      countryISO,
+      appointmentId,
+    }: AppointmentProps = message;
 
-  const appointment = new Appointment({
-    patientId,
-    scheduleId,
-    insurance,
-    countryISO,
-    appointmentId,
-  });
+    console.log({
+      patientId,
+      scheduleId,
+      insurance,
+      countryISO,
+      appointmentId,
+    });
 
-  const application = new AppoinmentBookApplication();
-  await application.execute(appointment);
+    const appointment = new Appointment({
+      patientId,
+      scheduleId,
+      insurance,
+      countryISO,
+      appointmentId,
+    });
+
+    const application = new AppoinmentBookApplication();
+    await application.execute(appointment);
+  }
 
   return {
     statusCode: 200,

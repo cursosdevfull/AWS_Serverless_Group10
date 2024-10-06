@@ -16,5 +16,13 @@ export default {
         },
       },
     },
+    {
+      sqs: {
+        arn: {
+          "Fn::GetAtt": ["UpdateStatusQueue", "Arn"],
+        },
+        batchSize: 1,
+      },
+    },
   ],
 };

@@ -8,7 +8,7 @@ export default {
         arn: {
           "Fn::GetAtt": ["AppointmentQueueMX", "Arn"],
         },
-        batchSize: 5,
+        batchSize: 1,
       },
     },
   ],

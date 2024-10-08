@@ -1,0 +1,15 @@
+### Create appointment
+post https://dbmx2uwng8.execute-api.us-east-1.amazonaws.com/dev/appointment
+Content-Type: application/json
+
+{
+    "patientId": 1,
+    "scheduleId": 2500,
+    "insurance": {
+        "insuranceId": 1,
+        "planId": 1,
+        "copay": 10.3,
+        "deductible": 100
+    },
+    "countryISO": "MX"
+}

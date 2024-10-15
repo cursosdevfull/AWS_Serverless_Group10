@@ -1,6 +1,7 @@
 import {
   AttributeValue,
   DynamoDBClient,
+  GetItemCommand,
   PutItemCommand,
   PutItemCommandInput,
 } from "@aws-sdk/client-dynamodb";
@@ -24,5 +25,15 @@ export class DynamoDBConstructor {
   async addItem(item: ItemPayload, tableName: string) {
     const command = this.generateCommandPut(tableName, item);
     return this.client.send(command);
+  }
+
+  async getItem(patientId: number, tableName: string) {
+    const params = {
+      TableName: tableName,
+      Key: {
+        patientId: { N: patientId.toString() },
+      },
+    };
+    return this.client.send(new GetItemCommand(params));
   }
 }

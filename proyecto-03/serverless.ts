@@ -34,9 +34,11 @@ const serverlessConfiguration: AWS = {
         "${self:service}-${self:provider.stage}-AppointmentTable-co",
       APPOINTMENT_TABLE_MX:
         "${self:service}-${self:provider.stage}-AppointmentTable-mx",
+      PATIENT_TABLE: "Patient",
       APPOINTMENT_CO_URL: { Ref: "AppointmentQueueCO" },
       APPOINTMENT_MX_URL: { Ref: "AppointmentQueueMX" },
       APPOINTMENT_PE_URL: { Ref: "AppointmentQueuePE" },
+      SENT_EMAIL_URL: { Ref: "SentEmailQueue" },
       SNS_TOPIC_ARN: { Ref: "AppointmentSNSTopic" },
       UPDATE_STATUS_SNS_TOPIC_ARN: { Ref: "UpdateStatusSNSTopic" },
     },
@@ -60,7 +62,11 @@ const serverlessConfiguration: AWS = {
           },
           {
             Effect: "Allow",
-            Action: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
+            Action: [
+              "dynamodb:PutItem",
+              "dynamodb:UpdateItem",
+              "dynamodb:GetItem",
+            ],
             Resource: "arn:aws:dynamodb:*:*:*",
           },
           {

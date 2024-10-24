@@ -1,0 +1,83 @@
+resources: {
+    Resources: {
+      UpdatesBucket: {
+        Type: "AWS::S3::Bucket",
+        Properties: {
+          BucketName: "${self:service}-${self:provider.stage}-updates-bucket",
+        },
+      },
+      CodePipeline: {
+        Type: "AWS::CodePipeline::Pipeline",
+        Properties: {
+          Name: "${self:service}-${self:provider.stage}-pipeline",
+          RoleArn: "arn:aws:iam::${aws:accountId}:role/CodePipelineServiceRole",
+          Stages: [
+            {
+              Name: "Source",
+              Actions: [
+                {
+                  Name: "Source",
+                  ActionTypeId: {
+                    Category: "Source",
+                    Owner: "AWS",
+                    Provider: "S3",
+                    Version: "1",
+                  },
+                  Configuration: {
+                    S3Bucket: { Ref: "UpdatesBucket" },
+                    S3ObjectKey: "source.zip",
+                  },
+                  OutputArtifacts: [{ Name: "SourceOutput" }],
+                },
+              ],
+            },
+            {
+              Name: "Build",
+              Actions: [
+                {
+                  Name: "Build",
+                  ActionTypeId: {
+                    Category: "Build",
+                    Owner: "AWS",
+                    Provider: "CodeBuild",
+                    Version: "1",
+                  },
+                  Configuration: {
+                    ProjectName: "${self:service}-${self:provider.stage}-build",
+                  },
+                  InputArtifacts: [{ Name: "SourceOutput" }],
+                  OutputArtifacts: [{ Name: "BuildOutput" }],
+                },
+              ],
+            },
+            {
+              Name: "Deploy",
+              Actions: [
+                {
+                  Name: "Deploy",
+                  ActionTypeId: {
+                    Category: "Deploy",
+                    Owner: "AWS",
+                    Provider: "CloudFormation",
+                    Version: "1",
+                  },
+                  Configuration: {
+                    ActionMode: "CHANGE_SET_REPLACE",
+                    ChangeSetName: "PipelineChangeSet",
+                    StackName: "${self:service}-${self:provider.stage}-stack",
+                    Capabilities: "CAPABILITY_NAMED_IAM",
+                    TemplatePath: "BuildOutput::template.yml",
+                  },
+                  InputArtifacts: [{ Name: "BuildOutput" }],
+                },
+              ],
+            },
+          ],
+          ArtifactStore: {
+            Type: "S3",
+            Location: { Ref: "UpdatesBucket" },
+          },
+        },
+      },
+    },
+  },
